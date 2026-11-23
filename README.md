@@ -6,6 +6,15 @@ Deliver mail to three polar stations before a blizzard closes the passes. Polar 
 
 Tap an outlined neighbouring square to move. Crossing an open trail costs one hour. Deep snow costs two. The number on a pass is its closing hour, so you must arrive **before** that hour. Visit all three stations in any order within 12 hours. Delivery happens automatically when you enter a station.
 
+## Known Sailfish OS rendering issues
+
+**Rendering issues persist on physical Sailfish OS hardware.** The ARM64 game launches, but device testing still showed visual errors after the app-level workarounds. The native build uses the GeaStack Core fork at `77b9806`.
+
+- **Missing symbols.** Some map icons appeared as question marks. Polar Post now draws the markers with CSS shapes, which were visible in subsequent device photos. GeaStack Core has a related report about Turkish character coverage in its runtime font renderer. [Core issue #78](https://github.com/geastack/core/issues/78)
+- **Overlapping layout.** An explicit board height improved the spacing around the legend and restart button. A later device photo still showed the title and mission text running together. Version 0.1.4 puts the header on separate rows and passed browser checks in all three languages. The remaining device symptoms need further diagnosis.
+
+The cause of the layout difference remains open. Both Core's layout calculations and the viewport supplied by the Sailfish target are relevant to that investigation.
+
 ## Screenshots
 
 The web build of version 0.1.4, at the start of a route in English and after the first delivery in Finnish.
