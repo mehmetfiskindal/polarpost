@@ -1,6 +1,6 @@
 {
   "name": "polar-post",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,14 +8,18 @@
     "build": "vite build",
     "check": "tsc",
     "sailfish:prepare": "bash vendor/linux/targets/sailfish-os/build-sailfish-os.sh . --core-repo vendor/core --prepare-only",
-    "sailfish:build": "bash vendor/linux/targets/sailfish-os/build-sailfish-os.sh . --core-repo vendor/core"
+    "sailfish:build": "bash vendor/linux/targets/sailfish-os/build-sailfish-os.sh . --core-repo vendor/core",
+    "ios:device": "bash node_modules/@geastack/apple/targets/ios/build-ios.sh polar-post device",
+    "sailfish:package": "bash scripts/package-sailfish.sh"
   },
   "dependencies": {
     "@geajs/core": "1.5.1",
+    "@geastack/apple": "0.2.27",
     "@geastack/core": "0.1.55"
   },
   "devDependencies": {
     "@geajs/vite-plugin": "1.5.0",
+    "@geastack/cli": "0.1.82",
     "typescript": "^5.9.3",
     "vite": "^8.0.0"
   },
@@ -24,7 +28,8 @@
     "name": "Polar Post",
     "entry": "src/index.tsx",
     "targets": {
-      "web": true
+      "web": true,
+      "ios": true
     },
     "icons": {
       "512": "icon.png"
