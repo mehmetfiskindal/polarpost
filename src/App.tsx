@@ -1,10 +1,31 @@
-import { Component } from '@geastack/core'
+import { Component, type GeaElement } from '@geastack/core'
 import { english, finnish, german } from './messages'
 import { canMove, closesAt, cost, limit, rows, stationBit } from './game'
 import { game } from './store'
 import './style.css'
 
 const board = rows.map(row => row.split(''))
+
+type MapCellProps = { tile: string; nx: number; ny: number }
+
+class MapCell extends Component<GeaElement, MapCellProps> {
+  template({ tile, nx, ny }: MapCellProps) {
+    const t = game.language === 'fi' ? finnish : game.language === 'de' ? german : english
+    const bit = stationBit(tile)
+    const gate = closesAt(tile)
+    // Keep store reads in JSX so the native compiler tracks cell updates.
+    return (
+      <button class={'cell ' + (tile === '#' ? 'rock' : tile === 's' ? 'deep' : bit !== 0 ? 'station' : (gate !== 0 && game.elapsed >= gate) ? 'closed' : gate !== 0 ? 'gate' : '') + ((game.x === nx && game.y === ny) ? ' player' : '') + ((!game.finished && canMove(game.x, game.y, game.elapsed, nx, ny)) ? ' reachable' : '')}
+        aria-label={((game.x === nx && game.y === ny) ? t.courier : bit === 1 ? t.a : bit === 2 ? t.b : bit === 4 ? t.c
+      : (gate !== 0 && game.elapsed >= gate) ? t.blocked : gate !== 0 ? t.closes + gate : tile === '#' ? t.rock : tile === 's' ? t.snow : t.trail)} onClick={() => game.move(nx, ny)}>
+        <span class={'marker ' + ((game.x === nx && game.y === ny) ? 'courier' : bit !== 0 ? (((game.delivered & bit) !== 0) ? 'delivered' : 'mail')
+      : (gate !== 0 && game.elapsed >= gate) ? 'blocked' : tile === '#' ? 'peak' : '')}></span>
+        <span class="deadline">{(!(game.x === nx && game.y === ny) && !(gate !== 0 && game.elapsed >= gate) && gate !== 0 ? String(gate) : '')}</span>
+        <span class="cost">{(!game.finished && canMove(game.x, game.y, game.elapsed, nx, ny)) ? cost(tile) + t.hour : ''}</span>
+      </button>
+    )
+  }
+}
 
 export class App extends Component {
   template() {
@@ -35,28 +56,7 @@ export class App extends Component {
           <div class="board" role="group" aria-label={t.map}>
             {board.map((row, ny) => (
               <div class="row">
-                {row.map((tile, nx) => {
-                  const bit = stationBit(tile)
-                  const gate = closesAt(tile)
-                  const closed = gate !== 0 && game.elapsed >= gate
-                  const here = game.x === nx && game.y === ny
-                  const reachable = !game.finished && canMove(game.x, game.y, game.elapsed, nx, ny)
-                  const complete = (game.delivered & bit) !== 0
-                  const terrain = tile === '#' ? 'rock' : tile === 's' ? 'deep' : bit !== 0 ? 'station' : closed ? 'closed' : gate !== 0 ? 'gate' : ''
-                  const name = here ? t.courier : bit === 1 ? t.a : bit === 2 ? t.b : bit === 4 ? t.c
-                    : closed ? t.blocked : gate !== 0 ? t.closes + gate : tile === '#' ? t.rock : tile === 's' ? t.snow : t.trail
-                  const marker = here ? 'courier' : bit !== 0 ? (complete ? 'delivered' : 'mail')
-                    : closed ? 'blocked' : tile === '#' ? 'peak' : ''
-                  const deadline = !here && !closed && gate !== 0 ? String(gate) : ''
-                  return (
-                    <button class={'cell ' + terrain + (here ? ' player' : '') + (reachable ? ' reachable' : '')}
-                      aria-label={name} onClick={() => game.move(nx, ny)}>
-                      <span class={'marker ' + marker}></span>
-                      <span class="deadline">{deadline}</span>
-                      <span class="cost">{reachable ? cost(tile) + t.hour : ''}</span>
-                    </button>
-                  )
-                })}
+                {row.map((tile, nx) => <MapCell tile={tile} nx={nx} ny={ny} />)}
               </div>
             ))}
           </div>

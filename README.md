@@ -39,12 +39,12 @@ npm run build -- --outDir dist/web
 
 ## Build for Sailfish OS
 
-The native ARM64 build uses the [Linux target fork](https://github.com/mehmetfiskindal/linux) and [Core fork](https://github.com/mehmetfiskindal/core). The project ignores `vendor/` in Git. On a fresh checkout, run `npm ci` in the project root, then set up the revisions used for 0.1.4:
+The native ARM64 build uses the [Linux target fork](https://github.com/mehmetfiskindal/linux) and [Core fork](https://github.com/mehmetfiskindal/core). The project ignores `vendor/` in Git. On a fresh checkout, run `npm ci` in the project root, then set up the target and Core revisions:
 
 ```sh
 mkdir -p vendor
-git clone https://github.com/mehmetfiskindal/linux.git vendor/linux
-git -C vendor/linux checkout --detach d462a37d6dae627d538b54dc12d58de363bd2c62
+git clone --branch sailfish-device-fixes https://github.com/mehmetfiskindal/linux.git vendor/linux
+git -C vendor/linux checkout --detach 25ab067
 git clone https://github.com/mehmetfiskindal/core.git vendor/core
 git -C vendor/core checkout --detach 77b980616b5be74b0e5cec70bda16864b9fce76a
 npm --prefix vendor/linux install --no-save --package-lock=false @geastack/core@0.1.55 @geastack/compiler@^1.0.49 @geastack/geatsc-plugin-gea@0.1.28
@@ -62,4 +62,4 @@ With `sfdk` on your PATH and the Sailfish OS 5.1.0.11 aarch64 build target insta
 npm run sailfish:build -- --arch aarch64
 ```
 
-The SDK build writes packages under `vendor/linux/targets/sailfish-os/build/polar-post-aarch64/project/RPMS/`. The 0.1.4 device package was built from the prepared project using `rpmbuild` in a Sailfish OS 5.1.0.11 aarch64 Docker build environment.
+The SDK build writes packages under `.gea-sailfish/build/polar-post-aarch64/project/RPMS/`. The 0.1.4 device package was built from the prepared project using `rpmbuild` in a Sailfish OS 5.1.0.11 aarch64 Docker build environment.

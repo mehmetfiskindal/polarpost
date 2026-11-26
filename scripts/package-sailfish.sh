@@ -3,7 +3,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 npm run sailfish:prepare -- --arch aarch64
-project="$PWD/vendor/linux/targets/sailfish-os/build/polar-post-aarch64/project"
+project="$PWD/.gea-sailfish/build/polar-post-aarch64/project"
 mkdir -p dist/sailfish
 
 docker run --rm --network none \
