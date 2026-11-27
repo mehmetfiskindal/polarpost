@@ -101,7 +101,29 @@ Bu notlar, **Polar Post v0.1.9** uygulamasının **Sailfish OS 5.1.0.11 (`i486`)
 
 ---
 
-## 2. `linux` (`targets/sailfish-os`) Tarafındaki Problemler
+### 1.7. Runtime TTF rasterizer karakter tablosunda `ä / Ä / å / ß` eksik
+
+- **Belirti**: Sistem TTF (`LiberationSans-Regular.ttf`, `font=10000`) aktif olmasına rağmen Fince `Aikaa jäljellä`, `Syvä lumi`, `reitillä` metinlerindeki `ä` karakterleri `?` olarak çiziliyor (`Aikaa j?ljell?`, `Syv? lumi`, `reitill?`).
+- **Konum**:
+  - `packages/engine/rasterized_font.cpp` (`kRuntimeExtraCodepoints`, satır 140–145)
+- **Kök neden**:
+  - `kRuntimeExtraCodepoints` listesi Türkçe karakterleri (`Â Ç Î Ö Û Ü â ç î ö û ü Ğ ğ İ ı Ş ş`) içeriyor, ancak Fince ve Almanca için gereken `Ä` (`0x00c4`), `ä` (`0x00e4`), `Å` (`0x00c5`), `å` (`0x00e5`) ve `ß` (`0x00df`) kod noktalarını içermiyor.
+
+---
+
+### 1.8. `flex: 1 1 0px` kullanılan metin kutularında `FlexBasisScope(0)` ilk geçişte yüksekliği şişiriyor
+
+- **Belirti**: `.metrics div` üzerine `flex: 1 1 0px;` verildiğinde Core layout motoru kutuyu ilk olarak `0px` genişlikte ölçüp çok satırlı yükseklik hesaplıyor ve yatay genişleme sonrası bu fazla yüksekliği geri daraltmıyor (~2 kat uzun metrik kartı).
+- **Konum**:
+  - `packages/engine/ui/layout.cpp` (`FlexBasisScope`, satır 675–681)
+- **Workaround (uygulama tarafı)**:
+  - Çok satırlı/metin içeren yatay flex kutularında (`.metrics div`) `flex: 1;` bırakmak; `flex: 1 1 0px;` kuralını yalnızca sabit/tek-satır ızgara hücrelerinde (`.row`, `.cell`) kullanmak.
+
+---
+
+## 2. `linux` (`targets/sailfish-os`) Tarafındaki Problemler (Core Değiştirmeden Çözülebilenler)
+
+> **Kısıt**: `core` deposunda değişiklik yapılmayacak. Aşağıdaki çözümler yalnızca `linux` (`targets/sailfish-os`) ve uygulama (`polarpost`) katmanında uygulanabilir olacak şekilde düzenlenmiştir.
 
 ### 2.1. `gea::sailfish::fonts::install()` çağrısı `main()` içinde yapıldığı için statik CSS kurallarına yetişmiyor
 
@@ -111,8 +133,15 @@ Bu notlar, **Polar Post v0.1.9** uygulamasının **Sailfish OS 5.1.0.11 (`i486`)
   - `targets/sailfish-os/include/sailfish_fonts.h`
 - **Kök neden**:
   - `gea::sailfish::fonts::install()` `main()` içinde çağrılıyor; oysa Core'un ürettiği `GeaPluginCppPreludeRegistration` global constructor'ı `main()` öncesinde çalışıp `FontRegistry::familyId(...)` çağırıyor (bkz. madde 1.1).
-- **Önerilen çözüm**:
-  - Asıl düzeltme Core tarafında (1.1) yapılmalı. Buna ek olarak Sailfish hedefi, erken init güvenliği veya `install()` sonrası stil yeniden çözümleme/yenileme ile senkronize edilmeli.
+- **`linux` tarafında (Core'a dokunmadan) çözüm**:
+  - `sailfish_main.cpp` içine ELF öncelikli erken başlatıcı eklemek:
+    ```cpp
+    __attribute__((constructor(101))) static void sailfish_install_fonts_early()
+    {
+    	gea::sailfish::fonts::install();
+    }
+    ```
+  - **Güvenlik kontrolü**: Core'daki `FontRegistry::setRuntimeFontProvider` yalnızca `.bss` içindeki `runtimeFontProvider` işaretçisini ve `runtimeFontSlots(false)` fonksiyon-içi statik işaretçisini okur; `sailfish_fonts.h` içindeki `detail::state()` da fonksiyon-içi statiktir. Öncelik `101`, varsayılan öncelikteki (65535) `GeaPluginCppPreludeRegistration` constructor'ından **önce** çalışır; böylece tüm Sailfish uygulamalarındaki statik `font-family:` kuralları Core değiştirilmeden sistem TTF'ye çözülür. (`main()` içindeki mevcut `install()` çağrısı `s.installed` koruması sayesinde idempotent no-op olarak kalabilir.)
 
 ---
 
@@ -173,13 +202,31 @@ Doğrudan `vendor/core` C++ motorunda veya `vendor/linux` hedefinde olmamakla bi
 
 ---
 
+## 4. Core'a Dokunmadan Çözüm ve Emülatör Doğrulama Özeti (`sailfish-os-fixes` `0a9a0fa` + `polarpost`)
+
+| Konu | Core Değiştirmeden Çözüm | Durum (i486 Emülatör) |
+|---|---|---|
+| Statik `font-family` bitmap'e düşüyor (1.1, 2.1) | **`linux` (`0a9a0fa`)**: `sailfish_main.cpp` `__attribute__((constructor(200)))` → `gea::sailfish::fonts::install()` | **Doğrulandı** (`.title` = `font=10001` Liberation Serif) |
+| `body { font: ... }` `#app` ile eşleşmiyor (1.2) | **Uygulama (`src/style.css`)**: `.game-screen` üzerine `font: 16px system-ui, sans-serif;` eklendi | **Doğrulandı** (tüm metinler `font=10000` Liberation Sans) |
+| `flex: 1` sütunları zikzak yapıyor (1.3, 1.8) | **Uygulama (`src/style.css`)**: `.row` ve `.cell` için `flex: 1 1 0px;` (`.metrics div` `flex: 1;`) | **Doğrulandı** (`dpr=1` ve `dpr=2` sütunlar tam hizalı) |
+| `<button>` küçük ve sola yaslı (1.5) | **Uygulama (`src/style.css`)**: `.reset` `font-size: 16px` + flex ortalama | **Doğrulandı** |
+| Dil değişimi metinleri güncellemiyor (3) | **Uygulama (`src/App.tsx`)**: `msg(game.language)` / `statusMessage(game.language, ...)` ile JSX içinde doğrudan sinyal okuması (20 `language` aboneliği) | **Doğrulandı** (`EN`, `Suomi`, `Deutsch` tüm ekran güncelleniyor) |
+| Çok satırlı metin kısalınca artık karakter (`ruutua.n`) (1.4) | **Uygulama**: TTF + `.status { width: 100%; }` sonrası | **Doğrulandı** (`EN → FI` geçişinde artık karakter kalmadı) |
+| `i486` emülatörde `"auto"` DPR = 1 (2.3) | **`linux` (`0a9a0fa`)**: `i486` için de panel tabanlı `dpr=2` (`360x800` CSS) | **Doğrulandı** (env override olmadan `dpr=2`) |
+| `rpmlint` uyarıları (2.4) | **`linux` (`0a9a0fa`)**: PIE + strip + `URL` + `%changelog` | **Doğrulandı** (`rpmlint`: 0 hata, 0 uyarı) |
+| Fince/Almanca `ä / Ä / å / ß → ?` (1.7) | `vendor/core` `kRuntimeExtraCodepoints` listesinde eksik | **Upstream `core` gerekir** |
+| Bold / Italic sistem TTF yüzleri (1.6, 2.2) | `linux` (`0a9a0fa`) hazır; Core `RuntimeFontProvider` ağırlık parametresi bekliyor | **Upstream `core` gerekir** |
+
+---
+
 ## Öncelik Özeti
 
 | Öncelik | Katman | Konu | Kullanıcıya Etkisi |
 |---|---|---|---|
-| **Kritik** | `core` | `body` element seçicisi `#app` kökünü eşlemiyor (1.2) | Tüm uygulama 8x16 ASCII bitmap fonta düşüyor (`ä/ö/ü/Türkçe → ?`), taban `font-size` kayboluyor |
-| **Kritik** | `core` + `linux` | Statik `font-family` init sırası (`GeaPluginCppPreludeRegistration` vs `sailfish::fonts::install`) (1.1, 2.1) | Açık `font-family:` kuralları (ör. `.title`) sistem TTF yerine bitmap fontla çiziliyor |
-| **Yüksek** | `compiler` | Yerel türetilmiş `const t = game.language ...` abonelik üretmiyor (3) | Native Sailfish/iOS derlemelerinde dil değiştirme UI'ın büyük kısmını güncellemiyor |
-| **Orta** | `core` | `flex: 1` → `FlexBasis = kUnset` (`auto`) (1.3) | Flexbox ızgara sütunları içerik genişliğine göre kayıp zikzak yapıyor |
-| **Orta** | `core` | Çok satırlı metin kısalınca sağ kenarda artık karakter (`ruutua.n`) (1.4) | Dinamik metin güncellemelerinde görsel artık kalıyor |
-| **Düşük** | `core` + `linux` | `font: inherit`, `<button>` ortalama, Bold/Italic TTF, `i486` auto DPR, `rpmlint` (1.5, 1.6, 2.2–2.5) | Görsel tutarlılık, emülatör/cihaz eşliği ve paket hijyeni |
+| **Kritik** | `linux` (Core değişmeden) | `sailfish::fonts::install()` → `__attribute__((constructor(101)))` (2.1) | Statik `font-family:` kuralları (ör. `.title`) sistem TTF ile çizilir |
+| **Kritik** | Uygulama (Core workaround) | `.game-screen` üzerine `font: 16px system-ui, sans-serif;` + `.reset` stili (1.2, 1.5) | Tüm metinler TTF'ye geçer (`ä/ö/ü` düzelir), `Restart route` normal boyutta ve ortalı olur |
+| **Yüksek** | Uygulama (compiler workaround) | `App.tsx` içinde `game.language` doğrudan JSX'te okunacak şekilde güncelleme (3) | `Suomi` / `Deutsch` geçişi tüm ekranı günceller |
+| **Orta** | Uygulama (Core workaround) | `.cell` için `flex: 1 1 0px;` (1.3) | `dpr=1` ve `dpr=2`'de tüm tahta sütunları tam hizalanır |
+| **Orta** | `core` (upstream) | Çok satırlı metin kısalınca sağ kenarda artık karakter (`ruutua.n`) (1.4) | TTF + `width: 100%` ile emülatörde tekrar kontrol edilmeli |
+| **Düşük** | `linux` | `i486` auto DPR eşliği, `rpmlint` (PIE/strip/changelog) (2.3, 2.4) | Emülatör/cihaz eşliği ve paket hijyeni |
+| **Upstream** | `core` | `RuntimeFontProvider` Bold/Italic, `body` element eşleştirme, `flex: 1` basis, `font: inherit` (1.1–1.6) | Core repo'suna issue olarak bırakılabilir |

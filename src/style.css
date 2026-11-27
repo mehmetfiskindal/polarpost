@@ -2,22 +2,22 @@
 :root { color-scheme: light; --ink:#163348; --red:#a13732; --paper:#faf5e8; }
 * { box-sizing:border-box; }
 body { margin:0; min-height:100vh; background:#dbe5e6; font:16px system-ui,sans-serif; }
-.game-screen { width:100%; min-height:100vh; padding:clamp(14px,4vw,45px); background-color:#dbe5e6; }
+.game-screen { width:100%; min-height:100vh; padding:clamp(14px,4vw,45px); background-color:#dbe5e6; font:16px system-ui,sans-serif; }
 .page { max-width:530px; margin:auto; padding:clamp(12px,4vw,29px); background:var(--paper); border:1px solid #aab8b8; box-shadow:0 12px 34px #16334822; }
 .header { display:flex; flex-direction:column; align-items:stretch; gap:6px; border-bottom:2px solid var(--ink); padding-bottom:12px; }
 .season, .title, .mission { display:block; width:100%; flex-shrink:0; margin:0; }
 .season { font-size:12px; font-weight:800; line-height:16px; letter-spacing:1px; }
 .title { font-family:Georgia,serif; font-size:34px; font-weight:700; line-height:40px; }
 .mission { font-size:15px; line-height:20px; }
-.status { margin:0; }
+.status { width:100%; margin:0; }
 .metrics { display:flex; gap:12px; margin:15px 0; }
-.metrics div { flex:1; padding:8px 12px; background:#ece5d3; }
+.metrics div { flex:1; min-width:0; padding:8px 12px; background:#ece5d3; }
 .metrics strong { display:block; font: bold 26px Georgia,serif; }
 .metrics span { font-size:13px; }
 .board { height:72vw; max-height:434px; flex-shrink:0; display:flex; flex-direction:column; gap:2px; padding:4px; background:#8ba5b0; border:1px solid var(--ink); }
 button { font:inherit; }
-.row { display:flex; flex:1; min-height:0; gap:2px; }
-.cell { flex:1; position:relative; display:flex; align-items:center; justify-content:center; height:100%; min-width:0; min-height:0; padding:0; border:1px solid #a8bdc4; background:#ebf2f0; cursor:default; }
+.row { display:flex; flex:1 1 0px; min-height:0; gap:2px; }
+.cell { flex:1 1 0px; position:relative; display:flex; align-items:center; justify-content:center; height:100%; min-width:0; min-height:0; padding:0; border:1px solid #a8bdc4; background:#ebf2f0; cursor:default; }
 .cell.deep { background:#c8dce3; }
 .cell.rock { background:#aebdc5; }
 .cell.gate { background:#f3dcb7; }
@@ -43,12 +43,12 @@ button { font:inherit; }
 .legend-item { display:flex; align-items:center; gap:6px; }
 .cost { position:absolute; bottom:1px; right:3px; font-size:9px; font-weight:800; }
 .legend { margin:12px 0 14px; display:flex; flex-wrap:wrap; gap:5px 14px; font-size:12px; }
-.status { min-height:3em; font-size:14px; }
-.reset { width:100%; margin-top:10px; padding:10px; background-color:#d9e9e6; border:1px solid #638783; cursor:pointer; font-weight:700; }
+.status { min-height:3em; font-size:14px; line-height:20px; }
+.reset { width:100%; margin-top:10px; padding:10px; background-color:#d9e9e6; border:1px solid #638783; cursor:pointer; font-size:16px; font-weight:700; text-align:center; display:flex; align-items:center; justify-content:center; }
 .reset:hover { background-color:#c5deda; }
 
 .languages { display:flex; flex-direction:row; flex-shrink:0; gap:6px; margin-bottom:2px; }
-.languages button { min-height:34px; padding:5px 10px; font-size:14px; background-color:#f2ede0; border:1px solid #a7b5b6; cursor:pointer; }
+.languages button { min-height:34px; padding:5px 10px; font-size:14px; background-color:#f2ede0; border:1px solid #a7b5b6; cursor:pointer; display:flex; align-items:center; justify-content:center; }
 .languages button.active { background-color:#b7d8e3; border-color:#163348; }
 
 .title, .season, .mission, .metrics strong, .metrics span, .deadline, .cost,
